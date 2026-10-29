@@ -1,10 +1,10 @@
 import type { Achievement, AchievementFields, AchievementSuggestion, JournalEntry } from '../shared/domain';
 import { supabase } from './supabase';
 
-function unwrap<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
+function unwrap<T>({ data, error }: { data: T | null; error: { message: string } | null }): NonNullable<T> {
   if (error) throw new Error(error.message);
   if (data === null) throw new Error('O Supabase não retornou dados.');
-  return data;
+  return data as NonNullable<T>;
 }
 
 export async function listEntries(options: { search?: string; from?: string; to?: string; offset?: number; limit?: number } = {}) {
@@ -74,7 +74,14 @@ export async function listPendingSuggestions(): Promise<AchievementSuggestion[]>
 }
 
 export async function reviewSuggestion(id: string, action: 'accept' | 'discard') {
-  const suggestion = unwrap(await supabase.from('achievement_suggestions').select('id,context_problem,my_action,result_impact,competencies,period_start,period_end,status').eq('id', id).eq('status', 'pending').single());
+  const suggestion = unwrap(await supabase.from('achievement_suggestions').select('id,context_problem,my_action,result_impact,competencies,period_start,period_end,status').eq('id', id).eq('status', 'pending').single()) as {
+    context_problem: string;
+    my_action: string;
+    result_impact: string;
+    competencies: string;
+    period_start: string;
+    period_end: string;
+  };
   if (action === 'discard') {
     unwrap(await supabase.from('achievement_suggestions').update({ status: 'discarded' }).eq('id', id).eq('status', 'pending').select('id').single());
     return;
